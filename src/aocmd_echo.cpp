@@ -1,6 +1,6 @@
 // aocmd_echo.cpp - command handler for the "echo" command
 /*****************************************************************************
- * Copyright 2024 by ams OSRAM AG                                            *
+ * Copyright 2024-2026 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -21,6 +21,7 @@
 // Recycled lib https://github.com/maarten-pennings/cmd version 8.1.0 to change prefix from cmd to aocmd_cint
 // That library supports atmega range with limited memory, storing strings in flash using the F()/PSTR() macros.
 // Where the original code uses these macros they're retained, newly written (handler) code (for ESP32) will not use them.
+// Also replaced println by printf("\n") because println emits "\r\n". 
 
 
 #include <Arduino.h>        // Serial.print
@@ -42,7 +43,7 @@ extern bool aocmd_cint_echo; // Command interpreter should echo incoming chars (
 // Helper to print the echo status.
 static void aocmd_echo_print() { 
   Serial.print(F("echo: echoing ")); 
-  Serial.println(aocmd_cint_echo?F("enabled"):F("disabled")); 
+  Serial.printf("%s\n",aocmd_cint_echo?"enabled":"disabled"); 
 }
 
 
@@ -54,12 +55,12 @@ static void aocmd_echo_main(int argc, char * argv[]) {
   }
   if( argc==3 && aocmd_cint_isprefix(PSTR("faults"),argv[1]) && aocmd_cint_isprefix(PSTR("step"),argv[2]) ) {
     aocmd_cint_steperrorcount();
-    if( argv[0][0]!='@') Serial.println(F("echo: faults: stepped")); 
+    if( argv[0][0]!='@') Serial.printf(F("echo: faults: stepped\n")); 
     return;
   }
   if( argc==2 && aocmd_cint_isprefix(PSTR("faults"),argv[1]) ) {
     int n= aocmd_cint_geterrorcount();
-    if( argv[0][0]!='@') { Serial.print(F("echo: faults: ")); Serial.println(n); }
+    if( argv[0][0]!='@') { Serial.printf( "echo: faults: %d\n",n); }
     return;
   }
   if( argc==2 && aocmd_cint_isprefix(PSTR("enabled"),argv[1]) ) {
@@ -75,7 +76,7 @@ static void aocmd_echo_main(int argc, char * argv[]) {
   if( argc==3 && aocmd_cint_isprefix(PSTR("wait"),argv[1]) ) {
     int ms;
     if( ! aocmd_cint_parse_dec(argv[2],&ms) ) { Serial.printf("ERROR: wait time\n"); return; }
-    if( argv[0][0]!='@') { Serial.print(F("echo: wait: ")); Serial.println(ms); }
+    if( argv[0][0]!='@') { Serial.printf("echo: wait: %d\n",ms); }
     delay(ms);
     return;
   }
@@ -85,9 +86,9 @@ static void aocmd_echo_main(int argc, char * argv[]) {
   //char * s0=argv[start-1]+strlen(argv[start-1])+1;
   //char * s1=argv[argc-1];
   //for( char * p=s0; p<s1; p++ ) if( *p=='\0' ) *p=' ';
-  //Serial.println(s0); 
+  //Serial.printf/ln(s0); 
   for( int i=start; i<argc; i++) { if(i>start) Serial.print(' '); Serial.print(argv[i]);  }
-  Serial.println();
+  Serial.printf("\n");
 }
 
 
@@ -108,10 +109,8 @@ static const char aocmd_echo_longhelp[] PROGMEM =
   "NOTES:\n"
   "- supports @-prefix to suppress output\n"
   "- 'echo line' prints a white line (there are no <word>s)\n"
-  "- 'echo line faults' prints 'faults'\n"
-  "- 'echo line enabled' prints 'enabled'\n"
-  "- 'echo line disabled' prints 'disabled'\n"
-  "- 'echo line line' prints 'line'\n"
+  "- 'echo line faults' prints 'faults', does not run sub command\n"
+  "- similar for 'enabled', 'disabled', 'wait', or 'line'\n"
 ;
 
 

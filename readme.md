@@ -513,6 +513,10 @@ We saw in the previous section that the response for bidir was
 +-------+-------------------+-----+-------------+---------------+---------------+---------------+
 ```
 
+Tip: the command `osp fields tx` dissects the _last sent_ telegram. 
+Similarly `osp fields rx` dissects the _last received_ telegram. 
+This can be abbreviated to `osp fields`, or even `o f`.
+
 
 #### Topo for OSP
 
@@ -954,6 +958,15 @@ library is an experimental proof-of-concept.
 
 ## Version history _aocmd_
 
+- **2026 April 29, 0.7.0**
+  - The `osp fields` command now allows as argument `rx` or `tx`; it will show _last_ received/sent telegram.
+  - New sub command `osp warnings` to disable/enable warnings on aospi level (PSI=5 check).
+  - Version command now shows build settings (`result 0.5.0, spi 1.0.1 (MCU-B), osp 0.9.0 (log present), cmd 0.6.1 (max 128 chars, 32 args)`) also adding commas.
+  - Updated help for `echo`.
+  - Fixed bug: compile error with `#define AOOSP_LOG_ENABLED 0`.
+  - Fixed bug: The command interpreter and the commands `help` and `echo` no longer terminate lines with `\r\n`, now only `\n`.
+  - Fixed bug: Updated `aocmd_min.ino` (`println` to `printf`).
+  
 - **2025 September 17, 0.6.1**
   - Updated otp dump example.
   - Added link to examples.

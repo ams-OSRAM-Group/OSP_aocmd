@@ -1,6 +1,6 @@
 // aocmd_osp.cpp - command handler for the "osp" command - to send and receive OSP telegrams
 /*****************************************************************************
- * Copyright 2024,2025 by ams OSRAM AG                                       *
+ * Copyright 2024-2026 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -306,6 +306,7 @@ static void aocmd_osp_count_show() {
 }
 
 
+#if AOOSP_LOG_ENABLED
 // shows log status
 static void aocmd_osp_log_show() {
   Serial.printf("log: " );
@@ -313,6 +314,13 @@ static void aocmd_osp_log_show() {
   if( aoosp_loglevel_get()==aoosp_loglevel_args ) Serial.printf("args");
   if( aoosp_loglevel_get()==aoosp_loglevel_tele ) Serial.printf("tele");
   Serial.printf("\n");
+}
+#endif
+
+
+// shows warnings status
+static void aocmd_osp_warnings_show() {
+  Serial.printf("warn: %s\n", aospi_warnings_get() ? "enabled" : "disabled" );
 }
 
 
@@ -501,21 +509,35 @@ static void aocmd_osp_aoresult( int argc, char * argv[] ) {
 // Parse 'osp fields <data>...'
 static void aocmd_osp_fields( int argc, char * argv[] ) {
   uint8_t data[AOSPI_TELE_MAXSIZE];
+ 
+  int telesize;
+  
+  if( argc==2 || (argc==3 && aocmd_cint_isprefix("rx",argv[2])) ) {
+    Serial.printf("showing last received telegram\n");
+    const uint8_t * tele= aospi_rx_last(&telesize);
+    if( telesize > AOSPI_TELE_MAXSIZE ) { Serial.printf("ERROR: too much <data> (max %d)\n",AOSPI_TELE_MAXSIZE); return; }
+    memcpy(data, tele, telesize);
+  } else if( argc==3 && aocmd_cint_isprefix("tx",argv[2]) ) {
+    Serial.printf("showing last sent telegram\n");
+    const uint8_t * tele= aospi_tx_last(&telesize);
+    if( telesize > AOSPI_TELE_MAXSIZE ) { Serial.printf("ERROR: too much <data> (max %d)\n",AOSPI_TELE_MAXSIZE); return; }
+    memcpy(data, tele, telesize);
+  } else {
+    // get sizes
+    telesize = argc-2;
+    if( telesize > AOSPI_TELE_MAXSIZE ) { Serial.printf("ERROR: too much <data> (max %d)\n",AOSPI_TELE_MAXSIZE); return; }
+    // Parse bytes
+    for( int tix=0, aix=2; aix<argc; aix++, tix++ ) { // tix index in data[], aix index in argv[]
+      uint16_t val;
+      bool ok= aocmd_cint_parse_hex(argv[aix],&val) ;
+      if( !ok || val>0xFF ) { Serial.printf("ERROR: '%s' expects <data> 00..FF, not '%s'\n",argv[1], argv[aix]); return; }
+      data[tix] = val;
+    }
+  }
 
-  // get sizes
-  int telesize = argc-2;
-  if( telesize> AOSPI_TELE_MAXSIZE ) { Serial.printf("ERROR: too many <data> (max %d)\n",AOSPI_TELE_MAXSIZE); return; }
-
+  // Check payload size
   int payloadsize = telesize-4;
   if( payloadsize<0 ) { Serial.printf("ERROR: too few <data> (min 4)\n"); return; }
-  
-  // Parse bytes
-  for( int tix=0, aix=2; aix<argc; aix++, tix++ ) { // tix index in data[], aix index in argv[]
-    uint16_t val;
-    bool ok= aocmd_cint_parse_hex(argv[aix],&val) ;
-    if( !ok || val>0xFF ) { Serial.printf("ERROR: '%s' expects <data> 00..FF, not '%s'\n",argv[1], argv[aix]); return; }
-    data[tix] = val;
-  }
 
   // Print input bytes
   if( argv[0][0]!='@' ) {
@@ -792,7 +814,9 @@ static void aocmd_osp_main( int argc, char * argv[] ) {
     aocmd_osp_dirmux_show();
     aocmd_osp_validate_show();
     aocmd_osp_count_show();
+    #if AOOSP_LOG_ENABLED
     aocmd_osp_log_show(); 
+    #endif
   } else if( aocmd_cint_isprefix("dirmux",argv[1]) ) {
     if( argc==2 ) { aocmd_osp_dirmux_show(); return; }
     if( argc!=3 ) { Serial.printf("ERROR: 'dirmux' has too many args\n"); return; }
@@ -831,7 +855,18 @@ static void aocmd_osp_main( int argc, char * argv[] ) {
     aospi_txcount_reset();
     aospi_rxcount_reset();
     if( argv[0][0]!='@' ) aocmd_osp_count_show();
-  } else if( aocmd_cint_isprefix("log",argv[1]) ) {
+  } else if( aocmd_cint_isprefix("warnings",argv[1]) ) {
+    if( argc==2 ) { aocmd_osp_warnings_show(); return; }
+    if( argc!=3 ) { Serial.printf("ERROR: 'warnings' has too many args\n"); return; }
+    bool warnings= true;
+    if( aocmd_cint_isprefix("enabled",argv[2]) ) warnings= true;
+    else if( aocmd_cint_isprefix("disabled",argv[2]) ) warnings= false;
+    else { Serial.printf("ERROR: 'warnings' expects 'enable' or 'disable', not '%s'\n", argv[2]); return; }
+    aospi_warnings_set(warnings);
+    if( argv[0][0]!='@' ) aocmd_osp_warnings_show();
+  } 
+  #if AOOSP_LOG_ENABLED
+  else if( aocmd_cint_isprefix("log",argv[1]) ) {
     if( argc==2 ) { aocmd_osp_log_show(); return; }
     if( argc!=3 ) { Serial.printf("ERROR: 'log' has too many args\n"); return; }
     aoosp_loglevel_t level;
@@ -841,7 +876,9 @@ static void aocmd_osp_main( int argc, char * argv[] ) {
     else { Serial.printf("ERROR: 'log' expects 'none', 'args', or 'tele', not '%s'\n", argv[2]); return; }
     aoosp_loglevel_set(level);
     if( argv[0][0]!='@' ) aocmd_osp_log_show();
-  } else if( aocmd_cint_isprefix("info",argv[1]) ) {
+  } 
+  #endif
+  else if( aocmd_cint_isprefix("info",argv[1]) ) {
     if( argc==2 ) { aocmd_osp_info_show(); return; }
     if( argc!=3 ) { Serial.printf("ERROR: 'info' has too many args\n"); return; }
     // todo: add sub-command to search in descriptions?
@@ -873,7 +910,11 @@ static void aocmd_osp_main( int argc, char * argv[] ) {
 // The long help text for the "osp" command.
 static const char aocmd_osp_longhelp[] =
   "SYNTAX: osp\n"
+  #if AOOSP_LOG_ENABLED
   "- shows dirmux, validate, count and log status\n"
+  #else
+  "- shows dirmux, validate, and count status\n"
+  #endif
   "SYNTAX: osp dirmux [ bidir | loop ]\n"
   "- without optional argument shows the status of the direction mux\n"
   "- with optional argument sets the direction mux to bi-directional or loop\n"
@@ -886,10 +927,18 @@ static const char aocmd_osp_longhelp[] =
   "- without optional argument shows how many telegrams were sent and received\n"
   "- with 'reset', resets counters to 0\n"
   "- this is a count of SPI transactions (including failed ones)\n"
+  #if AOOSP_LOG_ENABLED
   "SYNTAX: osp log [ none | args | tele ]\n"
   "- without optional argument shows log status, with argument sets it\n"
   "- logs nothing, telegram name with args, or even raw telegram bytes\n"
-  "- this logs calls to the osp library, not the spi library used by 'osp'\n"
+  "- this logs calls to the aoosp library, not to aospi\n"
+  #else
+  "SYNTAX: osp log ...\n"
+  "- this firmware has no logging code, so command is not supported\n"
+  #endif
+  "SYNTAX: osp warnings [ enable | disable ]\n"
+  "- without optional argument shows warning status, with argument sets it\n"
+  "- enables PSI=5 warnings on aospi level\n"
   "SYNTAX: osp hwtest (out|in) [enable|disable]\n"
   "- hardware test for the output enable lines of the OUT and IN ports\n"
   "- without optional argument shows the status of output enable lines\n"
@@ -904,7 +953,9 @@ static const char aocmd_osp_longhelp[] =
   "- <filter> is an decimal number or a string\n"
   "SYNTAX: osp fields <data>...\n"
   "- pretty prints telegram dissected into fields (except for the payload)\n"
-  "- last line is in decimal, line before that in hex\n"
+  "- if 'rx' (or nothing) is passed as <data>, shows last received telegram\n"
+  "- if 'tx' is passed as <data>, shows last sent telegram\n"
+  "- in dissection: last line is in decimal, line before that in hex\n"
   "- if 'command' (tid) maps to n>1 telegrams, telegram name is followed by n\n"
   "- if 'crc' is not matching (ERR) is shown followed by correct CRC\n"
   "SYNTAX: osp resetinit\n"

@@ -1,6 +1,6 @@
 // aocmd_version.cpp - command handler for the "version" command
 /*****************************************************************************
- * Copyright 2024 by ams OSRAM AG                                            *
+ * Copyright 2024-2026 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -63,7 +63,14 @@ static void aocmd_version_main( int argc, char * argv[] ) {
     if( argv[0][0]!='@' ) Serial.printf( "compiler: " __VERSION__ "\n" );
     if( argv[0][0]!='@' ) Serial.printf( "arduino : %d%s\n",ARDUINO, (ARDUINO<10800?" (likely IDE2.x)":"") );
     if( argv[0][0]!='@' ) Serial.printf( "compiled: " __DATE__ ", " __TIME__ "\n" );
-    if( argv[0][0]!='@' ) Serial.printf( "aolibs  : result %s spi %s osp %s cmd %s\n", AORESULT_VERSION, AOSPI_VERSION, AOOSP_VERSION, AOCMD_VERSION);
+    if( argv[0][0]!='@' ) Serial.printf( "aolibs  : result %s, spi %s (%s), osp %s (%s), cmd %s (max %d chars, %d args)\n", 
+      AORESULT_VERSION, AOSPI_VERSION, aospi_phy_str(aospi_phy_get()), AOOSP_VERSION, 
+      #if AOOSP_LOG_ENABLED
+        "log present",
+      #else
+        "log absent",
+      #endif
+      AOCMD_VERSION, AOCMD_CINT_BUFSIZE, AOCMD_CINT_MAXARGS);
     if( argv[0][0]!='@' ) aocmd_version_extra();
     return;
   }

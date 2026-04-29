@@ -1,6 +1,6 @@
 // aocmd_min.ino - minimal command interpreter with just the built-in commands
 /*****************************************************************************
- * Copyright 2024 by ams OSRAM AG                                            *
+ * Copyright 2024-2026 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -39,7 +39,7 @@ No commands are given to change the LEDs (in the below example).
 
 OUTPUT
 Welcome to aocmd_min.ino
-spi: init
+spi: init(MCU-B)
 osp: init
 cmd: init
 
@@ -86,7 +86,7 @@ void setup() {
   aocmd_register(); // register all commands in aocmd lib
   Serial.printf("\n");
 
-  Serial.println( "Type 'help' for help" );
+  Serial.printf( "Type 'help' for help\n" );
   aocmd_cint_prompt(); // print initial prompt
 }
 

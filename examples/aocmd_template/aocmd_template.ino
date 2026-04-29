@@ -1,6 +1,6 @@
 // aocmd-appversion.ino - a template for an application with a command handler
 /*****************************************************************************
- * Copyright 2024 by ams OSRAM AG                                            *
+ * Copyright 2024-2026 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -77,7 +77,7 @@ void aocmd_version_app() {
 // Implementing this function is optional.
 void aocmd_version_extra() {
   Serial.printf( "file    : %s\n", aoresult_shorten(__FILE__) ); // just a (silly) example
-  // Serial.printf( "aolibs  : ui32 %s mw %s apps %s\n", AOUI32_VERSION, AOMW_VERSION, AOAPPS_VERSION);
+  // Serial.printf( "aolibs  : ui32 %s, mw %s, apps %s\n", AOUI32_VERSION, AOMW_VERSION, AOAPPS_VERSION);
 }
 
 

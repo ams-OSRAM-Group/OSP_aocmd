@@ -1,6 +1,6 @@
 // aocmd_cint.cpp - command interpreter (over UART/USB)
 /*****************************************************************************
- * Copyright 2024 by ams OSRAM AG                                            *
+ * Copyright 2024-2026 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -21,6 +21,7 @@
 // Recycled lib https://github.com/maarten-pennings/cmd version 8.1.0 to change prefix from cmd to aocmd_cint
 // That library supports atmega range with limited memory, storing strings in flash using the F()/PSTR() macros.
 // Where the original code uses these macros they're retained, newly written (handler) code (for ESP32) will not use them.
+// Also replaced println by printf("\n") because println emits "\r\n". 
 
 
 //#include <avr/pgmspace.h> // This library assumes most strings (command help texts) are in PROGMEM (flash, not RAM)
@@ -124,13 +125,13 @@ static void aocmd_cint_exec() {
     if( !(ix<aocmd_cint_ix) ) break;
     argv[argc]= &aocmd_cint_buf[ix];
     argc++;
-    if( argc>AOCMD_CINT_MAXARGS ) { Serial.println(F("ERROR: too many arguments"));  return; }
+    if( argc>AOCMD_CINT_MAXARGS ) { Serial.printf("ERROR: too many arguments\n");  return; }
     // scan for end of word (ie space)
     while( (ix<aocmd_cint_ix) && ( aocmd_cint_buf[ix]!=' ' && aocmd_cint_buf[ix]!='\t' ) ) ix++;
     aocmd_cint_buf[ix]= '\0';
     ix++;
   }
-  //for(ix=0; ix<argc; ix++) { Serial.print(ix); Serial.print("='"); Serial.print(argv[ix]); Serial.print("'"); Serial.println(""); }
+  //for(ix=0; ix<argc; ix++) { Serial.print(ix); Serial.print("='"); Serial.print(argv[ix]); Serial.print("'"); Serial.printf/ln(""); }
   // Check from streaming
   if( aocmd_cint_streamfunc ) {
     aocmd_cint_streamfunc(argc, argv); // Streaming mode is active pass the data
@@ -153,14 +154,14 @@ static void aocmd_cint_exec() {
   } 
   Serial.print(F("ERROR: command '")); 
   Serial.print(s); 
-  Serial.println(F("' not found (try help)")); 
+  Serial.printf("' not found (try help)\n"); 
 }
 
 
 // Add characters to the state machine of the command interpreter (firing a command on <CR>)
 void aocmd_cint_add(int ch) {
   if( ch=='\n' || ch=='\r' ) {
-    if( aocmd_cint_echo ) Serial.println();
+    if( aocmd_cint_echo ) Serial.printf("\n");
     aocmd_cint_buf[aocmd_cint_ix]= '\0'; // Terminate (make aocmd_cint_buf a c-string)
     aocmd_cint_exec();
     aocmd_cint_ix=0;
@@ -350,7 +351,7 @@ void aocmd_cint_pollserial( void ) {
 #endif
     ) {
       aocmd_cint_steperrorcount();
-      Serial.println(); Serial.println( F("WARNING: serial overflow") ); Serial.println(); 
+      Serial.printf( "\nWARNING: serial overflow\n" );
     }
     // Process read char by feeding it to command interpreter
     aocmd_cint_add(ch);

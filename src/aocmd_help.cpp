@@ -1,6 +1,6 @@
 // aocmd_help.cpp - command handler for the "help" command
 /*****************************************************************************
- * Copyright 2024 by ams OSRAM AG                                            *
+ * Copyright 2024-2026 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -21,6 +21,7 @@
 // Recycled lib https://github.com/maarten-pennings/cmd version 8.1.0 to change prefix from cmd to aocmd_cint
 // That library supports atmega range with limited memory, storing strings in flash using the F()/PSTR() macros.
 // Where the original code uses these macros they're retained, newly written (handler) code (for ESP32) will not use them.
+// Also replaced println by printf("\n") because println emits "\r\n".
 
 
 #include <Arduino.h>        // Serial.print
@@ -95,26 +96,26 @@ static void aocmd_help_showlonghelp(const char * longhelp, int verbose, const ch
 // The handler for the "help" command
 static void aocmd_help_main(int argc, char * argv[]) {
   if( argc==1 ) {
-    if( argv[0][0]!='@' ) Serial.println(F("Available commands"));
+    if( argv[0][0]!='@' ) Serial.printf(F("Available commands\n"));
     for( int i=0; i<aocmd_cint_descs_count; i++ ) {
       Serial.print(f(aocmd_cint_descs[i].name));
       Serial.print(' ');
       if( argv[0][0]!='@' ) {
         Serial.print('-');
         Serial.print(' ');
-        Serial.println(f(aocmd_cint_descs[i].shorthelp));
+        Serial.printf("%s\n",aocmd_cint_descs[i].shorthelp);
       }
     }
-    if( argv[0][0]=='@' ) Serial.println();
+    if( argv[0][0]=='@' ) Serial.printf("\n");
   } else if( argc==2 || argc==3 ) {
     aocmd_cint_desc_t * d= aocmd_cint_find(argv[1]);
     if( d==0 ) {
-      Serial.println(F("ERROR: command not found (try 'help')"));    
+      Serial.printf(F("ERROR: command not found (try 'help')\n"));    
     } else {
       aocmd_help_showlonghelp( d->longhelp, argv[0][0]!='@', argc==3?argv[2]:0 );
     }
   } else {
-    Serial.println(F("ERROR: 'help' has too many args"));
+    Serial.printf(F("ERROR: 'help' has too many args\n"));
   }
 }
 
